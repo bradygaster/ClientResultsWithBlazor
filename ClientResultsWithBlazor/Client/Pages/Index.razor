@@ -1,0 +1,60 @@
+﻿@page "/"
+@using Microsoft.AspNetCore.SignalR.Client
+@inject NavigationManager _navigationManager
+
+<PageTitle>Index</PageTitle>
+
+<h1>Roll the Die</h1>
+
+<input type="button" onclick="@JoinTheGameButtonClick" disabled="@IsJoinTheGameDisabled" value="Join the Game" />
+<input type="button" onclick="@StartTheGameButtonClick" disabled="@IsStartGameDisabled" value="Start the Game" />
+<input type="button" onclick="@RollTheDieButtonClick" disabled="@IsMyDieRollDisabled" value="Roll the Die" />
+
+<h2>Message:</h2>
+@_messageReceived
+
+@code
+{
+    private HubConnection _hubConnection;
+    private string _messageReceived = "Waiting...";
+    private bool IsStartGameDisabled = true;
+    private bool IsMyDieRollDisabled = true;
+    private bool IsJoinTheGameDisabled = false;
+
+    private async Task Start() => await _hubConnection.StartAsync();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var hubUri = _navigationManager.ToAbsoluteUri("/hubs/gamehub");
+
+        _hubConnection = new HubConnectionBuilder()
+                                .WithUrl(hubUri.AbsoluteUri)
+                                .Build();
+
+        _hubConnection.On("GetResult", async (string message) =>
+        {
+            _messageReceived = message;
+            return Random.Shared.Next(1, 6);
+        });
+
+        _hubConnection.On("EndResult", async (string message) =>
+        {
+            _messageReceived = message;
+        });
+
+        await Start();
+    }
+
+    protected async Task JoinTheGameButtonClick()
+    {
+    }
+
+    protected async Task StartTheGameButtonClick()
+    {
+        await _hubConnection.InvokeAsync("StartTheGame");
+    }
+
+    protected async Task RollTheDieButtonClick()
+    {
+    }
+}
